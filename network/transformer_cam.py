@@ -10,7 +10,7 @@ import torch
 import torch.nn as nn
 import numpy as np
 import time
-from timm.models.layers import DropPath, to_2tuple, trunc_normal_
+# from timm.models.layers import DropPath, to_2tuple, trunc_normal_
 from tools.utils import vision_features, save_image_heat_map, save_image_heat_map_list
 
 
@@ -31,8 +31,8 @@ class Padding_tensor(nn.Module):
         reflection_pad = nn.ReflectionPad2d(reflection_padding)
         x = reflection_pad(x)
         return x, [h_patches, w_patches, h_padding, w_padding]
-    
-    
+
+
 class PatchEmbed_tensor(nn.Module):
     def __init__(self, patch_size=16):
         super().__init__()
@@ -59,8 +59,8 @@ class PatchEmbed_tensor(nn.Module):
                     patch_matrix = torch.cat((patch_matrix, patch_one), dim=2)
         # patch_matrix  # (b, c, N, patch_size, patch_size)
         return patch_matrix, patches_paddings
-    
-    
+
+
 class Recons_tensor(nn.Module):
     def __init__(self, patch_size):
         super().__init__()
@@ -124,9 +124,9 @@ class Attention(nn.Module):
         self.dim = dim
         self.head_dim = dim // n_heads
         self.scale = self.head_dim ** -0.5
-        
+
         # self.recons_tensor = Recons_tensor(2)
-        
+
         self.qkv = nn.Linear(dim, dim * 3, bias=qkv_bias)
         self.cross = cross
         if cross:
@@ -187,7 +187,7 @@ class Attention(nn.Module):
         #     x_temp = x.view(1, 256, 128, 2, 2).permute(0, 2, 1, 3, 4)
         #     x_temp = self.recons_tensor(x_temp, [16,16,0,0])  # B, C, H, W
         #     vision_features(x_temp, 'atten', 'attn_x')
-        
+
         return x
 
 
@@ -222,7 +222,7 @@ class Block(nn.Module):
         else:
             out = x + self.attn(self.norm1(x))
             out = out + self.mlp(self.norm2(out))
-        
+
         return out
 # --------------------------------------------------------------------------------------
 
@@ -281,7 +281,7 @@ class cross_atten_module(nn.Module):
         x_self = x[2]
         # x_self = x2_ori + x[2]
         return x_self
-    
+
 
 class self_atten(nn.Module):
     def __init__(self, patch_size, embed_dim, num_patches, depth_self, n_heads=16,
@@ -308,7 +308,7 @@ class self_atten(nn.Module):
         x_patched2 = x_patched2.transpose(2, 1).contiguous().view(b, n, c * h * w)
         x1_self_patch = self.self_atten1(x_patched1)
         x2_self_patch = self.self_atten2(x_patched2)
-       
+
         # reconstruct
         if last is False:
             x1_self_patch = x1_self_patch.view(b, n, c, h, w).permute(0, 2, 1, 3, 4)
@@ -330,7 +330,7 @@ class cross_atten(nn.Module):
         self.patch_size = patch_size
         self.patch_embed_tensor = PatchEmbed_tensor(patch_size)
         self.recons_tensor = Recons_tensor(patch_size)
-        
+
         self.cross_atten1 = cross_atten_module(embed_dim, num_patches, depth_cross,
                                                      n_heads, mlp_ratio, qkv_bias, p, attn_p)
         self.cross_atten2 = cross_atten_module(embed_dim, num_patches, depth_cross,
@@ -348,28 +348,28 @@ class cross_atten(nn.Module):
         # b, n, c*h*w
         x1_self_patch = x_patched1.transpose(2, 1).contiguous().view(b, n, c * h * w)
         x2_self_patch = x_patched2.transpose(2, 1).contiguous().view(b, n, c * h * w)
-        
+
         x_in1 = x1_self_patch
         x_in2 = x2_self_patch
         cross1 = self.cross_atten1(x_in1, x_in2)
         cross2 = self.cross_atten2(x_in2, x_in1)
         out = cross1 + cross2
-        
+
         # reconstruct
         x1_self_patch = x1_self_patch.view(b, n, c, h, w).permute(0, 2, 1, 3, 4)
         x_self1 = self.recons_tensor(x1_self_patch, patches_paddings)  # B, C, H, W
         x2_self_patch = x2_self_patch.view(b, n, c, h, w).permute(0, 2, 1, 3, 4)
         x_self2 = self.recons_tensor(x2_self_patch, patches_paddings)  # B, C, H, W
-        
+
         cross1 = cross1.view(b, n, c, h, w).permute(0, 2, 1, 3, 4)
         cross1_all = self.recons_tensor(cross1, patches_paddings)  # B, C, H, W
-        
+
         cross2 = cross2.view(b, n, c, h, w).permute(0, 2, 1, 3, 4)
         cross2_all = self.recons_tensor(cross2, patches_paddings)  # B, C, H, W
-        
+
         out = out.view(b, n, c, h, w).permute(0, 2, 1, 3, 4)
         out_all = self.recons_tensor(out, patches_paddings)  # B, C, H, W
-        
+
         return out_all, x_self1, x_self2, cross1_all, cross2_all
 
 
@@ -388,7 +388,7 @@ class cross_encoder(nn.Module):
                                               n_heads, mlp_ratio, qkv_bias, p, attn_p)
         self.self_atten_block2 = self_atten(self.patch_size, embed_dim, num_patches, depth_self,
                                                    n_heads, mlp_ratio, qkv_bias, p, attn_p)
-        
+
         self.cross_atten_block = cross_atten(self.patch_size, embed_dim, self.num_patches, depth_self,
                                                depth_cross, n_heads, mlp_ratio, qkv_bias, p, attn_p)
 

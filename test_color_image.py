@@ -26,7 +26,7 @@ def load_model(custom_config_auto, custom_config_trans, model_path_auto_ir, mode
     model_auto_ir.load_state_dict(torch.load(model_path_auto_ir))
     model_auto_ir.cuda()
     model_auto_ir.eval()
-    
+
     model_auto_vi = Auto_Encoder_single(**custom_config_auto)
     model_auto_vi.load_state_dict(torch.load(model_path_auto_vi))
     model_auto_vi.cuda()
@@ -49,7 +49,7 @@ def test(model_auto_ir, model_auto_vi, model_trans, shift_flag, ir_path, vi_path
     if args.cuda:
         ir_img = ir_img.cuda()
         vi_img = vi_img.cuda()
-    
+
     # ---------------------------------------------
     # outputs = model.reconsturce(ir_img, vi_img)
     ir_sh, ir_de = model_auto_ir(ir_img)
@@ -60,7 +60,7 @@ def test(model_auto_ir, model_auto_vi, model_trans, shift_flag, ir_path, vi_path
     vi_self = outputs['vi_self']
     fuse_cross = outputs['fuse_cross']
     # # ---------------------------------------------
-    
+
     # ---------------------------------------------
     path_out = output_path + '/results_crossfuse_'
     path_out_fea = output_path_fea + '/result_crossfuse_'
@@ -68,7 +68,7 @@ def test(model_auto_ir, model_auto_vi, model_trans, shift_flag, ir_path, vi_path
     utils.save_image(ir_self, path_out_fea + 'irself_' + ir_name)
     utils.save_image(vi_self, path_out_fea + 'viself_' + ir_name)
     utils.save_image(fuse_cross, path_out_fea + 'cross_' + ir_name)
-    
+
     print('Done. ', ir_name)
 
 
@@ -90,7 +90,7 @@ if __name__ == "__main__":
         "out_channels": 1,
         "part_out": 128,
         "train_flag": False,
-        
+
         "img_size": 32,
         "patch_size": 2,
         "depth_self": 1,
@@ -101,24 +101,24 @@ if __name__ == "__main__":
         "p": 0.,
         "attn_p": 0.,
     }
-    
-    resume_model_auto_ir = "./models/autoencoder/auto_encoder_epoch_5_ir.model"
-    resume_model_auto_vi = "./models/autoencoder/auto_encoder_epoch_5_vi.model"
-    
+
+    resume_model_auto_ir = "./models/autoencoder/auto_encoder_epoch_4_ir.model"
+    resume_model_auto_vi = "./models/autoencoder/auto_encoder_epoch_4_vi.model"
+
     # model_path_auto = "./models/autoencoder/auto_encoder_epoch_3.model"
     # model_path_trans = "./models/transfuse/fusetrans_epoch_32_bs_8_num_20k_lr_0.1_s1_c1.model"
-    model_path_trans = "./models/transfuse/fusetrans_epoch_8_nosh.model"
+    model_path_trans = "./models/transfuse/fusetrans_epoch_32.model"
     # ----------------------------------------------------
     img_flag = True
 
-    test_path_ir = './images/M3FD_Fusion/ir'
-    test_path_vi = './images/M3FD_Fusion/vis'
+    test_path_ir = 'datasets/M3FD/Ir'
+    test_path_vi = 'datasets/M3FD/Vis'
     data_type = '/M3FD_Fusion_nosh'
- 
+
     # test_path_ir = './images/vot/ir'
     # test_path_vi = './images/vot/vis'
     # data_type = '/vot_transfuse'
-    
+
     ir_pathes, ir_names = utils.list_images_test(test_path_ir)
     # ---------------------------------------------------
     output_path1 = './output/crossfuse_test'

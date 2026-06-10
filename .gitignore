@@ -1,0 +1,22 @@
+# Virtual Environments
+venv/
+env/
+.venv/
+
+# SSIM
+pytorch_msssim/
+
+# Tools
+tools/
+
+# __pycache__ and .ipynb_checkpoints
+__pycache__/
+
+# Datasets, roc_curves outputs
+datasets/
+roc_curves/
+models/
+
+# Args files
+args_auto.py
+args_trans.py
