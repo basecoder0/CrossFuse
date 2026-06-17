@@ -16,7 +16,10 @@ __pycache__/
 datasets/
 roc_curves/
 models/
+models/autoencoder/
+output/
 
 # Args files
 args_auto.py
 args_trans.py
+*.model

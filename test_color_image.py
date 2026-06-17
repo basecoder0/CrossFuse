@@ -56,18 +56,18 @@ def test(model_auto_ir, model_auto_vi, model_trans, shift_flag, ir_path, vi_path
     vi_sh, vi_de = model_auto_vi(vi_img)
     outputs = model_trans(ir_de, ir_sh, vi_de, vi_sh, shift_flag)
     img_out = outputs['out']
-    ir_self = outputs['ir_self']
-    vi_self = outputs['vi_self']
-    fuse_cross = outputs['fuse_cross']
+    # ir_self = outputs['ir_self']
+    # vi_self = outputs['vi_self']
+    # fuse_cross = outputs['fuse_cross']
     # # ---------------------------------------------
 
     # ---------------------------------------------
     path_out = output_path + '/results_crossfuse_'
     path_out_fea = output_path_fea + '/result_crossfuse_'
     utils.save_image_color(img_out, vi_cb, vi_cr, path_out + ir_name)
-    utils.save_image(ir_self, path_out_fea + 'irself_' + ir_name)
-    utils.save_image(vi_self, path_out_fea + 'viself_' + ir_name)
-    utils.save_image(fuse_cross, path_out_fea + 'cross_' + ir_name)
+    # utils.save_image(ir_self, path_out_fea + 'irself_' + ir_name)
+    # utils.save_image(vi_self, path_out_fea + 'viself_' + ir_name)
+    # utils.save_image(fuse_cross, path_out_fea + 'cross_' + ir_name)
 
     print('Done. ', ir_name)
 
@@ -106,8 +106,8 @@ if __name__ == "__main__":
     resume_model_auto_vi = "./models/autoencoder/auto_encoder_epoch_4_vi.model"
 
     # model_path_auto = "./models/autoencoder/auto_encoder_epoch_3.model"
-    # model_path_trans = "./models/transfuse/fusetrans_epoch_32_bs_8_num_20k_lr_0.1_s1_c1.model"
-    model_path_trans = "./models/transfuse/fusetrans_epoch_32.model"
+    model_path_trans = "./models/transfuse/fusetrans_epoch_32_bs_8_num_20k_lr_0.1_s1_c1.model"
+    # model_path_trans = "./models/transfuse/fusetrans_epoch_32.model"
     # ----------------------------------------------------
     img_flag = True
 

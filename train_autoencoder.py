@@ -96,7 +96,7 @@ def train(data, img_flag, modality):
 		for idx in range(batch_num):
 
 			image_paths = img_paths[idx * batch_size:(idx * batch_size + batch_size)]
-			img = utils.get_train_images(image_paths, height=args.Height, width=args.Width, flag=img_flag)
+			img, _ = utils.get_train_images(image_paths, height=args.Height, width=args.Width, flag=img_flag)
 
 			count += 1
 			optimizer.zero_grad()

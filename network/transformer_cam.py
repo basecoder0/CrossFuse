@@ -10,6 +10,10 @@ import torch
 import torch.nn as nn
 import numpy as np
 import time
+
+import matplotlib.pyplot as plt
+import os
+
 # from timm.models.layers import DropPath, to_2tuple, trunc_normal_
 from tools.utils import vision_features, save_image_heat_map, save_image_heat_map_list
 
@@ -372,7 +376,6 @@ class cross_atten(nn.Module):
 
         return out_all, x_self1, x_self2, cross1_all, cross2_all
 
-
 class cross_encoder(nn.Module):
     def __init__(self, img_size, patch_size, embed_dim, num_patches, depth_self, depth_cross, n_heads=16,
                  mlp_ratio=4., qkv_bias=True, p=0., attn_p=0.):
@@ -386,6 +389,7 @@ class cross_encoder(nn.Module):
 
         self.self_atten_block1 = self_atten(self.patch_size, embed_dim, num_patches, depth_self,
                                               n_heads, mlp_ratio, qkv_bias, p, attn_p)
+
         self.self_atten_block2 = self_atten(self.patch_size, embed_dim, num_patches, depth_self,
                                                    n_heads, mlp_ratio, qkv_bias, p, attn_p)
 
@@ -417,4 +421,5 @@ class cross_encoder(nn.Module):
             x_self1, x_self2, x_cross1, x_cross2 = roll_x_self1, roll_x_self2, roll_x_self1, roll_x_self2
         # -------------------------------------
         # recons
+
         return out, x1_a, x2_a, roll_x_self1, roll_x_self2, x_cross1, x_cross2
