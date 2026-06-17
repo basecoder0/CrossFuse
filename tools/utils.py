@@ -48,7 +48,7 @@ def list_images_datasets(directory, num):
             # name1 = name.split('.')
             index += 1
             names.append(name)
-        
+
     return images, names
 
 
@@ -72,7 +72,7 @@ def list_images_test(directory):
             images.append(join(directory, file))
         # name1 = name.split('.')
         names.append(name)
-    
+
     return images, names
 
 
@@ -187,7 +187,7 @@ def recons_midle_feature_two(x_in, y_in, start=0):
             patch_one = patch_one.view(b, 1, h, w)
             # raw_img = patch_one
             patch_matrix_x = patch_one
-            
+
     for i in range(6,7):
         raw_img = None
         for j in range(2,3):
@@ -202,9 +202,9 @@ def recons_midle_feature_two(x_in, y_in, start=0):
 
 
 def save_image_heat_map_two(x, y, output_path):
-    
+
     img_fusion = recons_midle_feature_two(x, y)
-    
+
     # img_fusion = normalize_tensor(torch.mean(torch.abs(img_fusion), dim=1, keepdim=True)) * 255
     # img_fusion = normalize_tensor(torch.mean(img_fusion, dim=1, keepdim=True)) * 255
     img_fusion = img_fusion.cpu().data[0].numpy()
@@ -213,7 +213,7 @@ def save_image_heat_map_two(x, y, output_path):
         img_fusion = img_fusion.transpose(1, 2, 0).astype('uint8')
     else:
         img_fusion = img_fusion.astype('uint8')
-    
+
     img_fusion=cv2.applyColorMap(img_fusion, cv2.COLORMAP_JET) # for heat map
     cv2.imwrite(output_path, img_fusion)
     # return img_fusion
@@ -290,8 +290,10 @@ def get_train_images(paths, height=256, width=256, flag=False):
     if isinstance(paths, str):
         paths = [paths]
     images = []
+    original_images = []
     for path in paths:
         image = get_image(path, height, width, flag)
+        original_images.append(image)
         if flag is True:
             image = np.transpose(image, (2, 0, 1))
         else:
@@ -299,7 +301,7 @@ def get_train_images(paths, height=256, width=256, flag=False):
         images.append(image)
     images = np.stack(images, axis=0)
     images = torch.from_numpy(images).float()
-    return images
+    return images, original_images
 
 
 #  --------------------------------------------------------------------
@@ -319,11 +321,11 @@ def get_test_images_color(paths, height=256, width=256, flag=True):
         image_y = np.reshape(image_y, [1, image_y.shape[0], image_y.shape[1]])
         image_cb = np.reshape(image_cb, [image.shape[0], image.shape[1], 1])
         image_cr = np.reshape(image_cr, [image.shape[0], image.shape[1], 1])
-        
+
         images.append(image_y)
         images_cb.append(image_cb)
         images_cr.append(image_cr)
-        
+
     images = np.stack(images, axis=0)
     images = torch.from_numpy(images).float()
     return images, images_cb, images_cr
@@ -357,7 +359,7 @@ def save_image(img_fusion, output_path):
     else:
         img_fusion = img_fusion.astype('uint8')
     cv2.imwrite(output_path, img_fusion)
-    
+
 
 # def save_image_heat(img_fusion, output_path):
 #     img_fusion = img_fusion.cpu().data[0].numpy()
@@ -382,15 +384,15 @@ def save_image_heat_map_list(fea_list, output_path):
     # fea_all = (fea_all - np.min(fea_all)) / (np.max(fea_all) - np.min(fea_all) + EPSILON)
     # fea_all = fea_all * 255
     fea_all = fea_all.astype('uint8')
-    
+
     fea_all=cv2.applyColorMap(fea_all, cv2.COLORMAP_JET) # for heat map
     cv2.imwrite(output_path, fea_all)
-    
+
 
 def save_image_heat_map(img_fusion, output_path):
-    
+
     # img_fusion = recons_midle_feature(img_fusion)
-    
+
     img_fusion = normalize_tensor(torch.mean(torch.abs(img_fusion), dim=1, keepdim=True)) * 255
     # img_fusion = normalize_tensor(torch.mean(img_fusion, dim=1, keepdim=True)) * 255
     img_fusion = img_fusion.cpu().data[0].numpy()
@@ -399,11 +401,11 @@ def save_image_heat_map(img_fusion, output_path):
         img_fusion = img_fusion.transpose(1, 2, 0).astype('uint8')
     else:
         img_fusion = img_fusion.astype('uint8')
-    
+
     img_fusion=cv2.applyColorMap(img_fusion, cv2.COLORMAP_JET) # for heat map
     cv2.imwrite(output_path, img_fusion)
     # return img_fusion
-    
+
 
 def save_image_color(img_fusion, vi_cb, vi_cr, output_path):
     img_fusion = img_fusion.cpu().data[0].numpy()
@@ -515,10 +517,10 @@ def show_heatmap(feature, output_path):
 
     img_fusion=cv2.applyColorMap(feature, cv2.COLORMAP_JET) # for heat map
     cv2.imwrite(output_path, img_fusion)
-    
+
     # fig = plt.figure()
     # # sns.heatmap(feature, cmap='YlGnBu', xticklabels=50, yticklabels=50)
     # sns.heatmap(feature, xticklabels=50, yticklabels=50)
     # fig.savefig(output_path, bbox_inches='tight')
-    
+
 

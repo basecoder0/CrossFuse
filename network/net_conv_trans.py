@@ -5,6 +5,9 @@
 # @File : net_transf.py
 # @Time : 2021/11/8 16:16
 
+import os
+from pathlib import Path
+import cv2
 import torch
 import torch.nn as nn
 import numpy as np
@@ -60,7 +63,7 @@ class Weight(nn.Module):
         g_y = torch.sqrt((y - self.conv_sh(y)) ** 2)
         w_x = g_x / (g_x + g_y + EPSILON)
         w_y = g_y / (g_x + g_y + EPSILON)
-        
+
         w_x = w_x.detach()
         w_y = w_y.detach()
         return w_x, w_y
@@ -76,7 +79,7 @@ class Weight(nn.Module):
         g_y = self.conv_de(y)
         w_x = g_x / (g_x + g_y + EPSILON)
         w_y = g_y / (g_x + g_y + EPSILON)
-        
+
         w_x = w_x.detach()
         w_y = w_y.detach()
         return w_x, w_y
@@ -130,7 +133,7 @@ class Decoder_fusion(nn.Module):
     def forward(self, ir_sh, vi_sh, ir_de, vi_de, x1):
         wd = self.weight.for_de(ir_de, vi_de)  # average
         out = x1
-        
+
         out = out + wd[0] * ir_de + wd[1] * vi_de
         out = self.up(self.conv1(out))
         out = self.conv_block(out)
@@ -144,7 +147,7 @@ class Decoder_fusion(nn.Module):
 
 
 class Trans_FuseNet(nn.Module):
-    def __init__(self, img_size, patch_size, en_out_channels1, out_channels, part_out, train_flag, 
+    def __init__(self, img_size, patch_size, en_out_channels1, out_channels, part_out, train_flag,
                  depth_self, depth_cross, n_heads, mlp_ratio, qkv_bias, p, attn_p):
         super().__init__()
         self.img_size = img_size  # 32*32
@@ -154,7 +157,6 @@ class Trans_FuseNet(nn.Module):
         self.recons_tensor = Recons_tensor(img_size)
         self.embed_dim = part_out * patch_size * patch_size  # 512
         self.num_patches = int(img_size / patch_size) * int(img_size / patch_size)  # 16*16
-        
         self.cross_atten_block = cross_encoder(self.img_size, self.patch_size, self.embed_dim, self.num_patches, depth_self,
                                                depth_cross, n_heads, mlp_ratio, qkv_bias, p, attn_p)
 
@@ -204,7 +206,7 @@ class Trans_FuseNet(nn.Module):
             ir_cross = torch.cat(ir_cross, dim=0)
             vi_cross = torch.cat(vi_cross, dim=0)
             c_f = torch.cat(c_f, dim=0)
-        
+
         c_f = c_f.permute(1, 2, 0, 3, 4)  # b, c, N, h, w
         c_f = self.recons_tensor(c_f, patches_paddings)
         # -----------------------------------
@@ -214,32 +216,93 @@ class Trans_FuseNet(nn.Module):
         out = utils.normalize_tensor(out)
         out = out * 255
         # -----------------------------------
-        outputs = {'out': out}
+        outputs = {'out': out, 'ir_self': ir_self,
+                   'vi_self': vi_self, 'ir_roll': ir_roll,
+                   'vi_roll': vi_roll, 'ir_cross': ir_cross,
+                   'vi_cross': vi_cross, 'c_f': c_f
+                }
 
         return outputs
 
     # training phase
-    def train_module(self, x_ir, x_vi, ir_sh, vi_sh, ir_de, vi_de, shift_flag, gra_loss, order_loss):
+    def train_module(self, x_ir, x_vi, ir_sh, vi_sh, ir_de, vi_de, shift_flag, gra_loss, order_loss, ori_imgs, idx, epoch):
         # cross attention module
         c_f, ir_self, vi_self, ir_roll, vi_roll, vi_cross, ir_cross = self.cross_atten_block(ir_de, vi_de, shift_flag)
         in_put = c_f
+
         # -----------------------------------
         # visiualize the middle features
         ir_s = utils.recons_midle_feature(ir_self)
         vi_s = utils.recons_midle_feature(vi_self)
         vi_c = utils.recons_midle_feature(vi_cross)
         ir_c = utils.recons_midle_feature(ir_cross)
-        
+
         fuse = utils.recons_midle_feature(in_put)
         middle_temp = [ir_s, vi_s, ir_c, vi_c, fuse]
         # -----------------------------------
+
+        output_path_attention= './output/img_attention/'
+        if os.path.exists(output_path_attention) is False:
+            os.mkdir(output_path_attention)
+
+        output_path_ir = output_path_attention + 'ir/'
+        output_path_vi = output_path_attention + 'vi/'
+        if os.path.exists(output_path_ir) is False:
+            os.mkdir(output_path_ir)
+        if os.path.exists(output_path_vi) is False:
+            os.mkdir(output_path_vi)
+
+        # Need to overlay Attention map on the original image, so the original image is needed for visualization
+        image_ir = ori_imgs[0][0]
+        image_vi = ori_imgs[1][0]
+
+        # Create proper attention maps by averaging across channels
+        # vi_self and ir_self shape: [batch, channels, H, W]
+        attention_vis = torch.mean(torch.abs(vi_self), dim=1, keepdim=True)  # [batch, 1, H, W]
+        attention_ir = torch.mean(torch.abs(ir_self), dim=1, keepdim=True)   # [batch, 1, H, W]
+
+        # Normalize to 0-1 range
+        attention_vis = utils.normalize_tensor(attention_vis)
+        attention_ir = utils.normalize_tensor(attention_ir)
+
+        # Convert to numpy and squeeze to 2D
+        attention_vis_np = attention_vis[0, 0].cpu().detach().numpy()  # [H, W]
+        attention_ir_np = attention_ir[0, 0].cpu().detach().numpy()    # [H, W]
+
+        # Apply colormap
+        heatmap_vis = cv2.applyColorMap(np.uint8(255 * attention_vis_np), cv2.COLORMAP_JET)
+        heatmap_ir = cv2.applyColorMap(np.uint8(255 * attention_ir_np), cv2.COLORMAP_JET)
+
+        # Resize heatmaps to match original image size
+        heatmap_vis = cv2.resize(heatmap_vis, (image_vi.shape[1], image_vi.shape[0]), interpolation=cv2.INTER_CUBIC)
+        heatmap_ir = cv2.resize(heatmap_ir, (image_ir.shape[1], image_ir.shape[0]), interpolation=cv2.INTER_CUBIC)
+
+        # Ensure original images are 3-channel BGR for blending
+        if len(image_vi.shape) == 2 or image_vi.shape[2] == 1:
+            image_vi = cv2.cvtColor(image_vi, cv2.COLOR_GRAY2BGR)
+        if len(image_ir.shape) == 2 or image_ir.shape[2] == 1:
+            image_ir = cv2.cvtColor(image_ir, cv2.COLOR_GRAY2BGR)
+
+        overlayed_image_vis = cv2.addWeighted(image_vi, 0.6, heatmap_vis, 0.4, 0)
+        overlayed_image_ir = cv2.addWeighted(image_ir, 0.6, heatmap_ir, 0.4, 0)
+
+        if idx % 80 == 0:  # Save every 80 batches
+            img_code = f'{idx:04d}'
+            if not Path(output_path_vi + 'vi_attention_{}_{}.png'.format(img_code, epoch)).exists():
+                cv2.imwrite(output_path_vi + 'vi_attention_{}_{}.png'.format(img_code, epoch), overlayed_image_vis)
+            if not Path(output_path_ir + 'ir_attention_{}_{}.png'.format(img_code, epoch)).exists():
+                cv2.imwrite(output_path_ir + 'ir_attention_{}_{}.png'.format(img_code, epoch), overlayed_image_ir)
+
+        # -------------------------
+
+        #------------------------------------
         # decoder fusion
         out = self.decoder_fusion(ir_sh, vi_sh, ir_de, vi_de, in_put)
         out = utils.normalize_tensor(out)
         out = out * 255
         # -----------------------------------
         loss_pix, temp = order_loss(out, x_ir, x_vi)
-  
+
         loss_gra, gp, gxir, gxvi, g_target = gra_loss(out, x_ir, x_vi)
         weight = [gxir, gxvi, g_target, gp, temp]
         # loss_mean = mean_loss(out, x_vi, x_ir)

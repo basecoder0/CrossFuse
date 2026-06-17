@@ -10,9 +10,9 @@
 
 class Args():
 	# For training
-	path = ['G:/datasets/Image-fusion/KAIST/lwir/'] # for type_flag = 'ir'
-	# path = ['/data/Disk_B/KAIST-RGBIR/visible/'] # for type_flag = 'vi'
-	type_flag = 'ir' # or 'vi'
+	path = ['datasets/KAIST/set00/V000/lwir/'] # for type_flag = 'ir'
+	# path = ['datasets/KAIST/set00/V000/visible/'] # for type_flag = 'vi'
+	type_flag = 'ir' # or 'ir'
 	cuda = True
 	lr = 0.0001
 	epochs = 4
